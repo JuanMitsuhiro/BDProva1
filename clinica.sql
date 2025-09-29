@@ -11,7 +11,6 @@ senha		CHAR(8)			NOT NULL
 
 PRIMARY KEY(rg)
 )
-DROP TABLE CLIENTE
 GO
 CREATE TABLE Especialidade(
 codigo		INT				NOT NULL,
@@ -30,10 +29,9 @@ turno			VARCHAR(10)		NOT NULL
 PRIMARY KEY(rg)
 FOREIGN KEY(especialidade) REFERENCES Especialidade(codigo)
 )
-DECLARE @resultado VARCHAR(100)
 GO
 CREATE TABLE Consulta(
-codigo			INT				IDENTITY(1, 200),
+codigo			INT				IDENTITY(100,1),
 cliente			CHAR(9)			NOT NULL,
 especialidade	INT				NOT NULL,
 medico			CHAR(9)			NOT NULL,
@@ -44,7 +42,8 @@ categoria		VARCHAR(10)		NOT NULL
 
 PRIMARY KEY(codigo)
 FOREIGN KEY(cliente) REFERENCES Cliente(rg),
-FOREIGN KEY(medico) REFERENCES Medico(rg)				
+FOREIGN KEY(medico) REFERENCES Medico(rg),
+FOREIGN KEY(especialidade) REFERENCES Especialidade(codigo)
 )
 GO
 INSERT INTO Especialidade VALUES  
@@ -66,7 +65,7 @@ INSERT INTO Especialidade VALUES
 (16, 'Hematologia'),
 (17, 'Infectologia'),
 (18, 'Medicina do Trabalho'),
-(19, 'Medicina de FamÌlia e Comunidade'),
+(19, 'Medicina de Fam√≠lia e Comunidade'),
 (20, 'Cirurgia Geral')
 GO
 CREATE PROCEDURE sp_validaidade(@datanasc DATE, @valida BIT OUTPUT)
@@ -126,7 +125,7 @@ BEGIN
 		SET @valida = 0
 END
 GO
-CREATE alter PROCEDURE sp_validalogin(@rg CHAR(9),@senha CHAR(8), @saida BIT OUTPUT)
+CREATE PROCEDURE sp_validalogin(@rg CHAR(9),@senha CHAR(8), @saida BIT OUTPUT)
 AS
 BEGIN
     IF EXISTS (SELECT 1 FROM Cliente WHERE rg = @rg AND senha = @senha)
@@ -138,29 +137,6 @@ BEGIN
         SET @saida = 0
     END
 END
-GO
-CREATE ALTER PROCEDURE sp_logincliente(	@rg CHAR(9),
-									@nome VARCHAR(45), @nascimento DATE, 
-									@tel CHAR(11), @senha CHAR(8),
-									@saida VARCHAR(100) OUTPUT)
-AS
-DECLARE @res BIT
-EXEC sp_validalogin @rg, @senha, @res OUTPUT
-IF (@res = 1)
-BEGIN
-	SET @nome = (SELECT nome FROM Cliente WHERE rg = @rg)
-	SET @nascimento = (SELECT nascimento FROM Cliente WHERE rg = @rg)
-	SET @tel = (SELECT telefone FROM Cliente WHERE rg = @rg)
-
-	TRUNCATE TABLE #login
-	INSERT INTO #login VALUES (@rg, @nome, @nascimento, @tel, @senha)
-	SET @saida = 'Login v·lido.'
-END
-ELSE
-BEGIN
-	SET @saida = 'Login inv·lido.'
-END 
-
 GO
 CREATE PROCEDURE sp_cadastracliente(	@op CHAR(1), @rg CHAR(9),
 										@nome VARCHAR(45), @nascimento DATE, 
@@ -179,11 +155,11 @@ BEGIN
         EXEC sp_validarg @rg, @rgValida OUTPUT
 
         IF @rgValida = 0
-            RAISERROR('RG inv·lido', 16, 1)
+            RAISERROR('RG inv√°lido', 16, 1)
         IF @idadeValida = 0
-            RAISERROR('Idade inv·lida', 16, 1)
+            RAISERROR('Idade inv√°lida', 16, 1)
         IF @senhaValida = 0
-            RAISERROR('Senha inv·lida', 16, 1)
+            RAISERROR('Senha inv√°lida', 16, 1)
 
         IF @op = 'I'
         BEGIN
@@ -197,13 +173,13 @@ BEGIN
             WHERE rg = @rg
             
             IF @@ROWCOUNT = 0
-                RAISERROR('Cliente n„o encontrado', 16, 1)
+                RAISERROR('Cliente n√£o encontrado', 16, 1)
             ELSE
                 SET @saida = 'Cliente atualizado com sucesso!'
         END
         ELSE
         BEGIN
-            RAISERROR('OperaÁ„o inv·lida', 16, 1)
+            RAISERROR('Opera√ß√£o inv√°lida', 16, 1)
         END
         
     END TRY
@@ -228,7 +204,7 @@ EXEC sp_validarg @rg, @rgValida OUTPUT
 			BEGIN
 				INSERT INTO Medico VALUES
 				(@rg, @nome, @tel, @especialidade, @turno)
-				SET @saida = 'MÈdico inserido com sucesso!'
+				SET @saida = 'M√©dico inserido com sucesso!'
 			END
 			ELSE
 			IF(UPPER(@op) = 'A')
@@ -238,35 +214,35 @@ EXEC sp_validarg @rg, @rgValida OUTPUT
 					UPDATE Medico
 					SET telefone = @tel
 					WHERE rg = @rg
-					SET @saida = 'MÈdico atualizado com sucesso!'
+					SET @saida = 'M√©dico atualizado com sucesso!'
 				END
 				ELSE
-					RAISERROR('MÈdico n„o encontrado', 16, 1)
+					RAISERROR('M√©dico n√£o encontrado', 16, 1)
 			END
 			ELSE
 			IF(UPPER(@op) = 'D')
 				BEGIN
 					DELETE Medico WHERE rg = @rg
-					SET @saida = 'MÈdico RG '+CAST(@rg AS VARCHAR(9)) + ' excluÌdo com sucesso!'
+					SET @saida = 'M√©dico RG '+CAST(@rg AS VARCHAR(9)) + ' exclu√≠do com sucesso!'
 				END
 			ELSE
 			BEGIN
-				RAISERROR('OperaÁ„o inv·lida', 16, 1)
+				RAISERROR('Opera√ß√£o inv√°lida', 16, 1)
 			END
 		END
 		END TRY
 		BEGIN CATCH
 				IF(@saida LIKE '%PRIMARY%')
 				BEGIN
-					RAISERROR('RG DE M…DICO JA EXISTENTE.', 16, 1)
+					RAISERROR('RG DE M√âDICO JA EXISTENTE.', 16, 1)
 				END
 		END CATCH
 	ELSE
 	BEGIN
 		IF(@rgValida = 0)
-			RAISERROR('RG inv·lido', 16, 1)
+			RAISERROR('RG inv√°lido', 16, 1)
 		ELSE
-			RAISERROR('OperaÁ„o inv·lida', 16, 1)
+			RAISERROR('Opera√ß√£o inv√°lida', 16, 1)
 	END
 GO
 CREATE PROCEDURE sp_cadastraespecialidade(	@op CHAR(1), @codigo INT, @nome VARCHAR(75), 
@@ -274,7 +250,7 @@ CREATE PROCEDURE sp_cadastraespecialidade(	@op CHAR(1), @codigo INT, @nome VARCH
 AS	
 	IF (UPPER(@op) IN ('I', 'A') AND (@nome IS NULL OR LTRIM(RTRIM(@nome)) = ''))
     BEGIN
-        RAISERROR('Nome da especialidade È obrigatÛrio', 16, 1)
+        RAISERROR('Nome da especialidade √© obrigat√≥rio', 16, 1)
         RETURN
     END
 	BEGIN TRY
@@ -282,7 +258,7 @@ AS
 		IF(UPPER(@op) = 'D')
 		BEGIN
 			DELETE Especialidade WHERE codigo = @codigo
-			SET @saida = 'Especialidade '+ @nome + ' excluÌdo com sucesso!'
+			SET @saida = 'Especialidade '+ @nome + ' exclu√≠do com sucesso!'
 		END
 		ELSE IF (UPPER(@op) = 'A')
 		BEGIN
@@ -328,7 +304,7 @@ BEGIN
 	END
 	ELSE IF (DATEDIFF(DAY, GETDATE(), @data) <= 0)
 	BEGIN
-		RAISERROR('Data inv·lida', 16, 1)
+		RAISERROR('Data inv√°lida', 16, 1)
 	END
 END
 
@@ -339,8 +315,6 @@ CREATE PROCEDURE sp_cadastraconsulta (	@op CHAR(1), @cliente CHAR(9),
 										@medico CHAR(9), @codigo INT OUTPUT, @saida VARCHAR(100) OUTPUT)
 AS
 BEGIN
-	SET @cliente = (SELECT rg FROM #login)
-
 	IF (UPPER(@op) = 'I')
 	BEGIN
 		DECLARE @retorno BIT
@@ -371,15 +345,3 @@ BEGIN
 	END
 END
 GO
-/*
-ï O cadastro de consultas, com dia, hora e especialidade, deve seguir as
-regras de marcaÁ„o descritas acima
-ï Para cadastrar uma consulta ou verificar consultas cadastradas, deve se
-fazer acesso por login e senha
-ï O cliente pode ver o histÛrico de suas consultas passadas e futuras
-
-*/
-select * from Cliente
-
-
-INSERT INTO Consulta (cliente, especialidade, dataHora, tipo, categoria) VALUES('277310416', 1, '2000-11-11 11:10', 'CONSULTA', 'PARTICULAR')
